@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Hard Level</title>
+  <style>
+    body { text-align:center; font-family:Arial; background:#f8d7da; }
+    button { padding:10px; margin:10px; }
+  </style>
+</head>
+<body>
+
+<h1>🔴 Hard Level</h1>
+<p id="task">Click Next</p>
+
+<button onclick="nextTask()">Next Task</button>
+
+<script>
+const tasks = [
+"Create a new slogan to stop Aedes",
+"Explain how the glass bottle trap works",
+"Act as a doctor explaining dengue symptoms",
+"Convince the audience in 10 seconds to prevent dengue",
+"Show what happens if dengue is ignored",
+"Give 3 prevention methods quickly",
+"Pretend you are a news reporter talking about dengue cases",
+"Explain why Aedes prefer clean water",
+"Act like a team leader organizing a clean-up campaign",
+"Create a short cheer: 'Stop dengue, stay safe!'"
+];
+
+function nextTask(){
+  const r = Math.floor(Math.random()*tasks.length);
+  document.getElementById("task").innerText = tasks[r];
+}
+</script>
+
+</body>
+</html>
