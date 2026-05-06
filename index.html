@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dengue Slayer</title>
+<style>
+body{
+  text-align:center;
+  font-family:Arial;
+  background:linear-gradient(to right,#36d1dc,#5b86e5);
+  color:white;
+  padding:50px;
+}
+.box{
+  background:rgba(0,0,0,0.3);
+  padding:30px;
+  border-radius:20px;
+  display:inline-block;
+}
+input{padding:10px;font-size:16px;}
+button{padding:10px 20px;margin-top:10px;}
+</style>
+</head>
+
+<body>
+<div class="box">
+<h1>🦟 Dengue Slayer Monopoly</h1>
+<input id="name" placeholder="Enter your name"><br>
+<button onclick="start()">Start Game</button>
+</div>
+
+<script>
+function start(){
+  let name=document.getElementById("name").value;
+  if(name===""){alert("Enter name");return;}
+  localStorage.setItem("player",name);
+  window.location.href="game.html";
+}
+</script>
+</body>
+</html>
