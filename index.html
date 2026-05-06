@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dengue Slayer Login</title>
+<style>
+body{
+font-family:Arial;
+text-align:center;
+background:linear-gradient(to right,#36d1dc,#5b86e5);
+color:white;
+}
+
+#box{
+margin-top:100px;
+background:rgba(0,0,0,0.3);
+display:inline-block;
+padding:20px;
+border-radius:10px;
+}
+
+input{
+padding:10px;
+margin:10px;
+}
+button{
+padding:10px 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div id="box">
+<h1>🦟 Dengue Slayer</h1>
+
+<h3 id="playerText"></h3>
+
+<input id="nameInput" placeholder="Enter name">
+<br>
+<button onclick="saveName()">Start</button>
+</div>
+
+<script>
+let url=new URLSearchParams(window.location.search);
+let id=url.get("player");
+
+document.getElementById("playerText").innerText="Player "+id;
+
+function saveName(){
+let name=document.getElementById("nameInput").value;
+localStorage.setItem("p"+id,name);
+window.location="game.html";
+}
+</script>
+
+</body>
+</html>

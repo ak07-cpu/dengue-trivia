@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dengue Slayer Game</title>
+
+<style>
+body{text-align:center;font-family:Arial;}
+
+#board{
+width:420px;height:420px;
+margin:auto;
+position:relative;
+border:2px solid black;
+}
+
+.box{
+width:40px;height:40px;
+border:1px solid black;
+position:absolute;
+font-size:8px;
+display:flex;
+align-items:center;
+justify-content:center;
+}
+
+.corner{background:white;font-weight:bold;}
+
+#center{
+position:absolute;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+font-size:18px;
+font-weight:bold;
+}
+
+.token{
+width:12px;height:12px;
+border-radius:50%;
+position:absolute;
+transition:0.3s;
+}
+.p1{background:red;}
+.p2{background:blue;}
+.p3{background:green;}
+.p4{background:purple;}
+
+#win{
+display:none;
+position:fixed;
+top:0;left:0;
+width:100%;height:100%;
+background:rgba(0,0,0,0.8);
+color:white;
+justify-content:center;
+align-items:center;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🦟 Dengue Slayer Monopoly</h2>
+
+<h3>Turn: <span id="turn"></span></h3>
+
+<button onclick="roll()">🎲 Roll Dice</button>
+<p>Dice: <span id="dice">0</span></p>
+
+<p id="question"></p>
+<div id="options"></div>
+
+<p>⏱ <span id="time"></span></p>
+<p>Score: <span id="score"></span></p>
+
+<div id="board">
+<div id="center">DENGUE TRIVIA</div>
+</div>
+
+<div id="win">
+<h1 id="winner"></h1>
+</div>
+
+<script>
+
+// PLAYERS
+let players=[
+{name:localStorage.p1,pos:0,score:0},
+{name:localStorage.p2,pos:0,score:0},
+{name:localStorage.p3,pos:0,score:0},
+{name:localStorage.p4,pos:0,score:0}
+];
+
+let turn=0,timer,currentQ;
+
+// SHOW TURN
+function showTurn(){
+document.getElementById("turn").innerText=players[turn].name;
+}
+showTurn();
+
+// BOARD
+let board=document.getElementById("board");
+let boxes=[];
+
+for(let i=0;i<40;i++){
+let d=document.createElement("div");
+d.className="box";
+if(i==0||i==9||i==19||i==29)d.classList.add("corner");
+board.appendChild(d);
+boxes.push(d);
+}
+
+boxes[0].innerText="START";
+boxes[9].innerText="HOSPITAL";
+boxes[19].innerText="FOGGING";
+boxes[29].innerText="GO HOSPITAL";
+
+// LAYOUT
+for(let i=0;i<10;i++){
+boxes[i].style.left=(360-(i*42))+"px";
+boxes[i].style.top="380px";
+}
+for(let i=10;i<20;i++){
+boxes[i].style.left="380px";
+boxes[i].style.top=(380-(i-10)*42)+"px";
+}
+for(let i=20;i<30;i++){
+boxes[i].style.left=(i-20)*42+"px";
+boxes[i].style.top="0px";
+}
+for(let i=30;i<40;i++){
+boxes[i].style.left="0px";
+boxes[i].style.top=(i-30)*42+"px";
+}
+
+// TOKENS
+let tokens=[];
+for(let i=0;i<4;i++){
+let t=document.createElement("div");
+t.className="token p"+(i+1);
+board.appendChild(t);
+tokens.push(t);
+}
+
+// QUESTIONS (short version for demo — extend if needed)
+const Q = [
+{q:"What disease is spread by Aedes mosquitoes?",o:["Malaria","Dengue Fever","Flu","Covid"],a:1},
+{q:"What mosquito spreads dengue?",o:["Culex","Anopheles","Aedes aegypti","Housefly"],a:2},
+{q:"When do Aedes mosquitoes bite?",o:["Night","Day","Midnight","Rain"],a:1},
+{q:"Where do they lay eggs?",o:["Dirty drains","Clean stagnant water","Soil","Air"],a:1},
+{q:"Life cycle duration?",o:["1 day","3 days","7–10 days","1 month"],a:2},
+{q:"Aedes breed in dirty water?",o:["True","False"],a:1},
+{q:"Common symptom of dengue?",o:["Fever","Cold","Cough","Headache"],a:0},
+{q:"Which mosquito bites?",o:["Male","Female"],a:1},
+
+{q:"Breeding place?",o:["Flower pot","Bed","Book","Chair"],a:0},
+{q:"Gas attracts mosquitoes?",o:["Oxygen","CO2","Nitrogen","Hydrogen"],a:1},
+{q:"Why weekly cleaning?",o:["Stop life cycle","Waste time","Fun","None"],a:0},
+{q:"If dengue untreated?",o:["Fatal","Nothing","Sleepy","Weak"],a:0},
+{q:"High risk season?",o:["Rainy","Dry","Snow","Cold"],a:0},
+{q:"Prevention method?",o:["Repellent","Candy","Sleep late","Ignore"],a:0},
+{q:"Mosquito appearance?",o:["Black stripes","Plain brown","Green","Blue"],a:0},
+{q:"Small water enough for breeding?",o:["Yes","No"],a:0},
+
+{q:"Why clean water still risk?",o:["Safe larvae","Dirty","Hot","Cold"],a:0},
+{q:"Why hard to control dengue?",o:["Fast breeding","Slow","Big size","Weak"],a:0},
+{q:"Bottle trap works by?",o:["CO2 attraction","Sound","Color","Heat"],a:0},
+{q:"Why bite in day?",o:["Body clock","Night","Rain","Cold"],a:0},
+{q:"Community needed?",o:["Yes","No","Optional","None"],a:0},
+{q:"If ignored dengue?",o:["More cases","None","Less","Safe"],a:0},
+{q:"Urban risk?",o:["Containers","Clean air","Snow","Cold"],a:0},
+{q:"Fogging effect?",o:["Temporary","Permanent","None","Strong"],a:0},
+
+{q:"Why human-mosquito cycle?",o:["Virus in humans","Animals","Air","Water"],a:0},
+{q:"Urban survival reason?",o:["Containers","Forest","Sea","Ice"],a:0},
+{q:"Fogging limitation?",o:["Kills adults only","All","None","Permanent"],a:0},
+{q:"Why remove larvae?",o:["Stops growth","Bigger","Faster","Harmless"],a:0},
+{q:"CO2 role?",o:["Signal","Light","Heat","Noise"],a:0},
+{q:"Why community spread?",o:["Mosquito travels","No spread","Air","Food"],a:0},
+{q:"Egg survival?",o:["Waterproof","Weak","Dead","Gone"],a:0},
+{q:"Behavior issue?",o:["People forget","Always clean","No risk","None"],a:0}
+];
+
+// TASKS
+const TASKS = [
+
+/* 🟢 POSITIVE */
+{t:"Clean stagnant water +20",p:20},
+{t:"Gotong-royong +25",p:25},
+{t:"Used repellent +10",p:10},
+{t:"Educated neighbours +20",p:20},
+{t:"Covered water containers +15",p:15},
+{t:"Reported breeding site +25",p:25},
+{t:"Created awareness poster +15",p:15},
+{t:"Weekly inspection +20",p:20},
+{t:"Installed mosquito net +10",p:10},
+{t:"Zero Aedes cases +30",p:30},
+
+/* 🔴 NEGATIVE */
+{t:"Left water in flower pot -15",p:-15},
+{t:"Ignored stagnant water -20",p:-20},
+{t:"No cleaning 2 weeks -25",p:-25},
+{t:"Got bitten -10",p:-10},
+{t:"Mosquito larvae at home -20",p:-20},
+{t:"Rubbish water container -15",p:-15},
+{t:"No protection used -10",p:-10},
+{t:"Many breeding spots -25",p:-25},
+{t:"Skipped inspection -15",p:-15},
+{t:"Wrong belief mosquitoes bite only at night -10",p:-10},
+
+/* 🟡 MOVEMENT */
+{t:"Got dengue → Hospital -30 skip turn",p:-30,skip:true,move:9},
+{t:"Early hospital visit +10",p:10},
+{t:"Fogging area +10",p:10},
+{t:"Heavy rain → move back 2",move:-2},
+{t:"Dry weather → move forward 2",move:2},
+{t:"Clean-up campaign +15 move forward 3",p:15,move:3},
+{t:"Found breeding spot +10 move forward 2",p:10,move:2},
+{t:"Outbreak nearby -10",p:-10},
+{t:"Mosquito trap invention +25",p:25},
+{t:"Health campaign success + move 4",p:0,move:4}
+
+];
+
+// MOVE TOKEN
+function moveToken(i){
+let p=players[i];
+let r=boxes[p.pos].getBoundingClientRect();
+let b=board.getBoundingClientRect();
+
+tokens[i].style.left=(r.left-b.left+10)+"px";
+tokens[i].style.top=(r.top-b.top+10)+"px";
+}
+
+// LOAD QUESTION
+function loadQ(p){
+currentQ=Q[p.pos%Q.length];
+
+question.innerText=currentQ.q;
+
+options.innerHTML="";
+
+currentQ.o.forEach((o,i)=>{
+let b=document.createElement("button");
+b.innerText=o;
+b.onclick=()=>check(i,p);
+options.appendChild(b);
+});
+
+startTimer(10);
+}
+
+// CHECK ANSWER
+function check(i,p){
+clearInterval(timer);
+
+if(i===currentQ.a){
+p.score+=10;
+}else{
+doTask(p);
+}
+
+document.getElementById("score").innerText=p.score;
+
+if(p.score>=300){
+win(p);
+return;
+}
+
+next();
+}
+
+// TASK
+function doTask(p){
+let t=TASKS[Math.floor(Math.random()*TASKS.length)];
+alert(t.t);
+
+if(t.p)p.score+=t.p;
+
+if(t.move){
+p.pos=(p.pos+t.move+40)%40;
+moveToken(turn);
+}
+if(t.skip){
+alert("Skip turn!");
+}
+}
+
+// TIMER
+function startTimer(t){
+time.innerText=t;
+
+timer=setInterval(()=>{
+t--;
+time.innerText=t;
+
+if(t<=0){
+clearInterval(timer);
+doTask(players[turn]);
+next();
+}
+},1000);
+}
+
+// DICE
+function roll(){
+let r=Math.floor(Math.random()*6)+1;
+dice.innerText=r;
+move(r);
+}
+
+// MOVE
+function move(step){
+let i=0;
+let p=players[turn];
+
+let m=setInterval(()=>{
+if(i>=step){
+clearInterval(m);
+loadQ(p);
+return;
+}
+
+p.pos=(p.pos+1)%40;
+moveToken(turn);
+i++;
+},200);
+}
+
+// TURN
+function next(){
+turn=(turn+1)%4;
+showTurn();
+}
+
+// WIN
+function win(p){
+document.getElementById("win").style.display="flex";
+document.getElementById("winner").innerText=p.name+" Wins!";
+}
+
+</script>
+
+</body>
+</html>
