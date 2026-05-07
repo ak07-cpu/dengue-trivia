@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Dengue Slayer Game</title>
+
+<style>
+
+body{
+font-family:Arial;
+background:#f4f4f4;
+text-align:center;
+margin:0;
+padding:20px;
+}
+
+h1{
+margin-bottom:20px;
+}
+
+.game{
+display:flex;
+justify-content:center;
+align-items:flex-start;
+gap:30px;
+flex-wrap:wrap;
+}
+
+.panel{
+background:white;
+padding:20px;
+border-radius:20px;
+box-shadow:0 4px 12px rgba(0,0,0,0.2);
+width:300px;
+}
+
+button{
+padding:10px 15px;
+margin:5px;
+border:none;
+border-radius:10px;
+cursor:pointer;
+font-size:15px;
+}
+
+#board{
+width:420px;
+height:420px;
+position:relative;
+
+background-image:url("board.png");
+background-size:cover;
+background-position:center;
+background-repeat:no-repeat;
+
+border:2px solid black;
+}
+
+/* invisible movement boxes */
+.box{
+width:40px;
+height:40px;
+position:absolute;
+opacity:0;
+}
+
+/* player tokens */
+.token{
+width:14px;
+height:14px;
+border-radius:50%;
+position:absolute;
+transition:0.25s;
+z-index:999;
+border:2px solid white;
+}
+
+.p1{background:red;}
+.p2{background:blue;}
+.p3{background:green;}
+.p4{background:purple;}
+
+#question{
+font-size:18px;
+font-weight:bold;
+}
+
+#task{
+font-weight:bold;
+color:#b00020;
+}
+
+.active{
+outline:3px solid orange;
+}
+
+#win{
+display:none;
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,0.8);
+justify-content:center;
+align-items:center;
+z-index:9999;
+}
+
+#winbox{
+background:white;
+padding:40px;
+border-radius:20px;
+}
+
+/* MOBILE */
+@media(max-width:600px){
+
+.game{
+flex-direction:column;
+align-items:center;
+}
+
+#board{
+width:330px;
+height:330px;
+}
+
+.panel{
+width:90%;
+}
+
+.token{
+width:10px;
+height:10px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<h1>🦟 Dengue Slayer Monopoly</h1>
+
+<div class="game">
+
+<div class="panel">
+
+<h2>Turn: <span id="turn"></span></h2>
+
+<button onclick="rollDice()">🎲 Roll Dice</button>
+
+<h3>Dice: <span id="dice">0</span></h3>
+
+<p id="question"></p>
+
+<div id="options"></div>
+
+<h3>⏱ Time: <span id="time">0</span></h3>
+
+<h3>🎯 Score: <span id="score">0</span> / 300</h3>
+
+<p id="task"></p>
+
+</div>
+
+<div id="board"></div>
+
+</div>
+
+<div id="win">
+<div id="winbox">
+
+<h1 id="winner"></h1>
+
+<button onclick="location.href='index.html'">
+Play Again
+</button>
+
+</div>
+</div>
+
+<script>
+
+let players=[
+{name:localStorage.getItem("p1"),pos:0,score:0},
+{name:localStorage.getItem("p2"),pos:0,score:0},
+{name:localStorage.getItem("p3"),pos:0,score:0},
+{name:localStorage.getItem("p4"),pos:0,score:0}
+];
+
+let turn=0;
+let timer;
+let currentQ;
+let isProcessing=false;
+
+const board=document.getElementById("board");
+
+let boxes=[];
+
+/* CREATE 40 INVISIBLE BOXES */
+for(let i=0;i<40;i++){
+
+let d=document.createElement("div");
+
+d.className="box";
+
+board.appendChild(d);
+
+boxes.push(d);
+
+}
+
+/* POSITION BOXES */
+
+/* bottom */
+for(let i=0;i<10;i++){
+
+boxes[i].style.left=(360-(i*42))+"px";
+boxes[i].style.top="380px";
+
+}
+
+/* left */
+for(let i=10;i<20;i++){
+
+boxes[i].style.left="0px";
+boxes[i].style.top=(380-(i-10)*42)+"px";
+
+}
+
+/* top */
+for(let i=20;i<30;i++){
+
+boxes[i].style.left=((i-20)*42)+"px";
+boxes[i].style.top="0px";
+
+}
+
+/* right */
+for(let i=30;i<40;i++){
+
+boxes[i].style.left="380px";
+boxes[i].style.top=((i-30)*42)+"px";
+
+}
+
+/* TOKENS */
+
+let tokens=[];
+
+for(let i=0;i<4;i++){
+
+let t=document.createElement("div");
+
+t.className="token p"+(i+1);
+
+board.appendChild(t);
+
+tokens.push(t);
+
+}
+
+function moveToken(i){
+
+let p=players[i];
+
+let r=boxes[p.pos].getBoundingClientRect();
+
+let b=board.getBoundingClientRect();
+
+tokens[i].style.left=(r.left-b.left+10)+"px";
+tokens[i].style.top=(r.top-b.top+10)+"px";
+
+}
+
+players.forEach((p,i)=>moveToken(i));
+
+/* QUESTIONS */
+
+const Q=[
+
+{
+q:"What disease is spread by Aedes mosquitoes?",
+o:["Malaria","Dengue Fever","Flu","Covid"],
+a:1,
+t:10
+},
+
+{
+q:"What mosquito spreads dengue?",
+o:["Culex","Anopheles","Aedes aegypti","Housefly"],
+a:2,
+t:10
+},
+
+{
+q:"When do Aedes mosquitoes bite?",
+o:["Night","Day","Midnight","Rain"],
+a:1,
+t:10
+},
+
+{
+q:"Where do they lay eggs?",
+o:["Dirty drains","Clean stagnant water","Soil","Air"],
+a:1,
+t:10
+}
+
+];
+
+/* TASKS */
+
+const TASKS=[
+
+"You cleaned stagnant water +20",
+"You joined gotong-royong +25",
+"You used repellent +10",
+"You left water in flower pot -15",
+"You ignored stagnant water -20",
+"You got dengue go hospital -30"
+
+];
+
+function showTurn(){
+
+document.getElementById("turn").innerText=
+players[turn].name;
+
+document.getElementById("score").innerText=
+players[turn].score;
+
+}
+
+showTurn();
+
+/* DICE */
+
+function rollDice(){
+
+if(isProcessing)return;
+
+clearQuestion();
+
+isProcessing=true;
+
+let count=0;
+
+let rolling=setInterval(()=>{
+
+document.getElementById("dice").innerText=
+Math.floor(Math.random()*6)+1;
+
+count++;
+
+if(count>10){
+
+clearInterval(rolling);
+
+let final=Math.floor(Math.random()*6)+1;
+
+document.getElementById("dice").innerText=final;
+
+movePlayer(final);
+
+}
+
+},100);
+
+}
+
+/* MOVE */
+
+function movePlayer(step){
+
+let p=players[turn];
+
+let moved=0;
+
+let moving=setInterval(()=>{
+
+if(moved>=step){
+
+clearInterval(moving);
+
+isProcessing=false;
+
+loadQuestion(p);
+
+return;
+
+}
+
+p.pos=(p.pos+1)%40;
+
+moveToken(turn);
+
+moved++;
+
+},250);
+
+}
+
+/* QUESTION */
+
+function loadQuestion(p){
+
+currentQ=Q[p.pos%Q.length];
+
+document.getElementById("question").innerText=
+currentQ.q;
+
+let opt=document.getElementById("options");
+
+opt.innerHTML="";
+
+currentQ.o.forEach((o,i)=>{
+
+let b=document.createElement("button");
+
+b.innerText=o;
+
+b.onclick=()=>answer(i,p);
+
+opt.appendChild(b);
+
+});
+
+startTimer(currentQ.t);
+
+}
+
+/* TIMER */
+
+function startTimer(t){
+
+clearInterval(timer);
+
+document.getElementById("time").innerText=t;
+
+timer=setInterval(()=>{
+
+if(isProcessing)return;
+
+t--;
+
+document.getElementById("time").innerText=t;
+
+if(t<=0){
+
+clearInterval(timer);
+
+wrongAnswer();
+
+}
+
+},1000);
+
+}
+
+/* ANSWER */
+
+function answer(choice,p){
+
+if(isProcessing)return;
+
+isProcessing=true;
+
+clearInterval(timer);
+
+disableButtons();
+
+if(choice===currentQ.a){
+
+p.score+=10;
+
+document.getElementById("task").innerText=
+"✅ Correct +10";
+
+}else{
+
+task(p);
+
+}
+
+document.getElementById("score").innerText=
+p.score;
+
+setTimeout(()=>{
+
+if(checkWin())return;
+
+isProcessing=false;
+
+nextTurn();
+
+clearQuestion();
+
+},1200);
+
+}
+
+/* WRONG */
+
+function wrongAnswer(){
+
+if(isProcessing)return;
+
+isProcessing=true;
+
+disableButtons();
+
+task(players[turn]);
+
+setTimeout(()=>{
+
+if(checkWin())return;
+
+isProcessing=false;
+
+nextTurn();
+
+clearQuestion();
+
+},1200);
+
+}
+
+/* TASK */
+
+function task(p){
+
+let t=TASKS[Math.floor(Math.random()*TASKS.length)];
+
+document.getElementById("task").innerText=
+"TASK: "+t;
+
+}
+
+/* BUTTON LOCK */
+
+function disableButtons(){
+
+let btns=document.querySelectorAll("#options button");
+
+btns.forEach(b=>{
+
+b.disabled=true;
+b.style.opacity="0.5";
+
+});
+
+}
+
+/* CLEAR */
+
+function clearQuestion(){
+
+document.getElementById("question").innerText="";
+document.getElementById("options").innerHTML="";
+document.getElementById("time").innerText="0";
+
+}
+
+/* NEXT TURN */
+
+function nextTurn(){
+
+turn=(turn+1)%4;
+
+showTurn();
+
+}
+
+/* WIN */
+
+function checkWin(){
+
+for(let p of players){
+
+if(p.score>=300){
+
+document.getElementById("win").style.display="flex";
+
+document.getElementById("winner").innerText=
+p.name+" WINS!";
+
+return true;
+
+}
+
+}
+
+return false;
+
+}
+
+</script>
+
+</body>
+</html>
